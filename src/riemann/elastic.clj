@@ -79,12 +79,16 @@
        (remove streams/expired?)
        (map #(elastic-event % massage))))
 
-(defn es-connect
+(defn es-connection
   "Connects to the ElasticSearch node.  The optional argument is a url
-  for the node, which defaults to `http://localhost:9200`.  This must
-  be called before any es-* functions can be used."
-  [host options]
-  (esr/connect host options))
+  for the node. Returns a connection to be used in subsequent calls."
+  ([]
+   (esr/connect))
+  ([uri]
+   (esr/connect uri))
+  ([uri opts]
+  (esr/connect uri opts)))
+
 
 (defn es-index
   "A function which takes a sequence of events, and indexes them in
@@ -106,7 +110,7 @@
   internal to Riemann.  Lastly, any fields starting with an `_` will
   have their value parsed as EDN.
 "
-  [doc-type & {:keys [index timestamping massage]
+  [conn doc-type & {:keys [index timestamping massage]
                :or {index "logstash"
                     massage true
                     timestamping :day}}]
@@ -128,7 +132,7 @@
                             raw)]
             (when (seq bulk-create-items)
               (try
-                (let [res (eb/bulk-with-index index bulk-create-items)
+                (let [res (eb/bulk-with-index conn index bulk-create-items)
                       total (count (:items res))
                       succ (filter :ok (:items res))
                       failed (filter :error (:items res))]
@@ -152,6 +156,6 @@
 
 (defn load-index-template
   "Loads the file into ElasticSearch as an index template."
-  [template-name mapping-file]
-  (esr/put (esr/index-template-url template-name)
+  [conn template-name mapping-file]
+  (esr/put (esr/index-template-url conn template-name)
            :body (file-as-json mapping-file)))
