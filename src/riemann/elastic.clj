@@ -12,17 +12,17 @@
 
 (defn make-index-timestamper [index period]
   (let [formatter (clj-time.format/formatter (str "'" index "'"
-                                  (cond
-                                   (= period :day)
-                                   "-YYYY.MM.dd"
-                                   (= period :hour)
-                                   "-YYYY.MM.dd.HH"
-                                   (= period :week)
-                                   "-YYYY.MM.dd.ww"
-                                   (= period :month)
-                                   "-YYYY.MM"
-                                   (= period :year)
-                                   "-YYYY")))]
+                                              (cond
+                                               (= period :day)
+                                               "-YYYY.MM.dd"
+                                               (= period :hour)
+                                               "-YYYY.MM.dd.HH"
+                                               (= period :week)
+                                               "-YYYY.MM.dd.ww"
+                                               (= period :month)
+                                               "-YYYY.MM"
+                                               (= period :year)
+                                               "-YYYY")))]
     (fn [date]
       (clj-time.format/unparse formatter date))))
 
@@ -83,8 +83,8 @@
   "Connects to the ElasticSearch node.  The optional argument is a url
   for the node, which defaults to `http://localhost:9200`.  This must
   be called before any es-* functions can be used."
-  [& argv]
-  (esr/connect! (or (first argv) "http://localhost:9200")))
+  [host options]
+  (esr/connect host options))
 
 (defn es-index
   "A function which takes a sequence of events, and indexes them in
@@ -95,7 +95,7 @@
   The :index argument defaults to \"logstash\" for Kibana
   compatability.  It's the root ES index name that this event will be
   indexed within.
-  
+
   The :timestamping argument, default to :day and it controls the time
   range component of the index name.  Acceptable values
   are :hour, :day, :week, :month and :year.
@@ -112,9 +112,9 @@
                     timestamping :day}}]
   (let [index-namer (make-index-timestamper index timestamping)]
     (fn [events]
-      (let [esets (group-by (fn [e] 
-                              (index-namer 
-                               (clj-time.format/parse format-iso8601 
+      (let [esets (group-by (fn [e]
+                              (index-namer
+                               (clj-time.format/parse format-iso8601
                                                       (get e "@timestamp"))))
                             (riemann-to-elasticsearch events massage))]
         (doseq [index (keys esets)]
@@ -132,7 +132,7 @@
                       total (count (:items res))
                       succ (filter :ok (:items res))
                       failed (filter :error (:items res))]
-                  
+
                   (info "elasticized" total "/" (count succ) "/" (count failed) " (total/succ/fail) items to index " index "in " (:took res) "ms")
                   (debug "Failed: " failed))
                 (catch Exception e
@@ -150,7 +150,7 @@
       (throw e))))
 
 
-(defn load-index-template 
+(defn load-index-template
   "Loads the file into ElasticSearch as an index template."
   [template-name mapping-file]
   (esr/put (esr/index-template-url template-name)

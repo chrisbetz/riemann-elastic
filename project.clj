@@ -5,8 +5,7 @@
                  [cheshire "5.3.1"]
                  [clj-logging-config "1.9.6"]
                  [riemann "0.2.10" :exclusions [joda-time org.slf4j/slf4j-log4j12]]
-                 [clojurewerkz/elastisch "1.2.0"]
-                 [org.elasticsearch/elasticsearch "0.90.3"]
-                 ]
-  :main elastic-riemann.core)
+                 [clojurewerkz/elastisch "2.2.0"]]
 
+
+  :main elastic-riemann.core)
