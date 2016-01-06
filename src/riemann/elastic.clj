@@ -12,23 +12,23 @@
 
 (defn make-index-timestamper [index period]
   (let [formatter (clj-time.format/formatter (str "'" index "'"
-                                              (cond
-                                               (= period :day)
-                                               "-YYYY.MM.dd"
-                                               (= period :hour)
-                                               "-YYYY.MM.dd.HH"
-                                               (= period :week)
-                                               "-YYYY.MM.dd.ww"
-                                               (= period :month)
-                                               "-YYYY.MM"
-                                               (= period :year)
-                                               "-YYYY")))]
+                                                  (cond
+                                                    (= period :day)
+                                                    "-YYYY.MM.dd"
+                                                    (= period :hour)
+                                                    "-YYYY.MM.dd.HH"
+                                                    (= period :week)
+                                                    "-YYYY.MM.dd.ww"
+                                                    (= period :month)
+                                                    "-YYYY.MM"
+                                                    (= period :year)
+                                                    "-YYYY")))]
     (fn [date]
       (clj-time.format/unparse formatter date))))
 
 (def ^{:private true} format-iso8601
   (clj-time.format/with-zone (clj-time.format/formatters :date-time-no-ms)
-    clj-time.core/utc))
+                             clj-time.core/utc))
 
 (defn ^{:private true} iso8601 [event-s]
   (clj-time.format/unparse format-iso8601
@@ -36,17 +36,17 @@
 
 (defn ^{:private true} safe-iso8601 [event-s]
   (try (iso8601 event-s)
-    (catch Exception e
-      (warn "Unable to parse iso8601 input: " event-s)
-      (clj-time.format/unparse format-iso8601 (clj-time.core/now)))))
+       (catch Exception e
+         (warn "Unable to parse iso8601 input: " event-s)
+         (clj-time.format/unparse format-iso8601 (clj-time.core/now)))))
 
 (defn ^{:private true} stashify-timestamp [event]
-  (->  (if-not (get event "@timestamp")
-         (let [time (:time event)]
-           (assoc event "@timestamp" (safe-iso8601 (long time))))
-         event)
-       (dissoc :time)
-       (dissoc :ttl)))
+  (-> (if-not (get event "@timestamp")
+        (let [time (:time event)]
+          (assoc event "@timestamp" (safe-iso8601 (long time))))
+        event)
+      (dissoc :time)
+      (dissoc :ttl)))
 
 (defn ^{:private true} edn-safe-read [v]
   (try
@@ -60,11 +60,11 @@
         (for [[k v] event
               :when v]
           (cond
-           (= (name k) "_id") [k v]
-           (.startsWith (name k) "_")
-           [(.substring (name k) 1) (edn-safe-read v)]
-           :else
-           [k v]))))
+            (= (name k) "_id") [k v]
+            (.startsWith (name k) "_")
+            [(.substring (name k) 1) (edn-safe-read v)]
+            :else
+            [k v]))))
 
 (defn ^{:private true} elastic-event [event massage]
   (let [e (-> event
@@ -87,7 +87,7 @@
   ([uri]
    (esr/connect uri))
   ([uri opts]
-  (esr/connect uri opts)))
+   (esr/connect uri opts)))
 
 
 (defn es-index
@@ -111,23 +111,23 @@
   have their value parsed as EDN.
 "
   [conn doc-type & {:keys [index timestamping massage]
-               :or {index "logstash"
-                    massage true
-                    timestamping :day}}]
+                    :or   {index        "logstash"
+                           massage      true
+                           timestamping :day}}]
   (let [index-namer (make-index-timestamper index timestamping)]
     (fn [events]
       (let [esets (group-by (fn [e]
                               (index-namer
-                               (clj-time.format/parse format-iso8601
-                                                      (get e "@timestamp"))))
+                                (clj-time.format/parse format-iso8601
+                                                       (get e "@timestamp"))))
                             (riemann-to-elasticsearch events massage))]
         (doseq [index (keys esets)]
           (let [raw (get esets index)
                 bulk-create-items
                 (interleave (map #(if-let [id (get % "_id")]
-                                    {:create {:_type doc-type :_id id}}
-                                    {:create {:_type doc-type}}
-                                    )
+                                   {:create {:_type doc-type :_id id}}
+                                   {:create {:_type doc-type}}
+                                   )
                                  raw)
                             raw)]
             (when (seq bulk-create-items)
@@ -136,10 +136,10 @@
                       total (count (:items res))
                       succ (filter :ok (:items res))
                       failed (filter :error (:items res))]
-
                   (info "elasticized" total "/" (count succ) "/" (count failed) " (total/succ/fail) items to index " index "in " (:took res) "ms")
                   (debug "Failed: " failed))
                 (catch Exception e
+                  ;; -> should add a new event (riemann.common/event ...)
                   (error "Unable to bulk index:" e))))))))))
 
 (defn ^{:private true} resource-as-json [resource-name]
